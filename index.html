@@ -1,0 +1,1233 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ImageToSS14Doc</title>
+    <link rel="icon" href="https://station14.ru/images/b/b2/SS14LibraryCapsule.png" type="image/png">
+    <script src="https://cdn.tailwindcss.com">
+    </script>
+    <style>
+        :root {
+            --bg-primary: #0a0e14;
+            --bg-secondary: #111820;
+            --bg-tertiary: #161e28;
+            --border: #1e2d3d;
+            --border-glow: #1a6b8a;
+            --accent: #00b4d8;
+            --accent-bright: #48cae4;
+            --accent-green: #2ecc71;
+            --accent-yellow: #f0c040;
+            --accent-red: #e74c3c;
+            --text-primary: #c8d6e5;
+            --text-secondary: #7a8b9f;
+            --text-dim: #4a5568;
+            --glow-cyan: 0 0 8px rgba(0, 180, 216, 0.5);
+            --glow-green: 0 0 8px rgba(46, 204, 113, 0.5);
+            --scanline-color: rgba(255, 255, 255, 0.015);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: var(--bg-primary);
+            background-image:
+                repeating-linear-gradient(0deg,
+                    var(--scanline-color) 0px,
+                    var(--scanline-color) 2px,
+                    transparent 2px,
+                    transparent 4px),
+                radial-gradient(ellipse at 50% 0%, rgba(0, 180, 216, 0.06) 0%, transparent 70%);
+            color: var(--text-primary);
+            font-family: 'Consolas', 'Courier New', 'Fira Code', 'JetBrains Mono', monospace;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 1.5rem;
+            position: relative;
+        }
+
+        /* Анимированная линия сканирования */
+        body::after {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, rgba(0, 180, 216, 0.25), transparent);
+            z-index: 100;
+            pointer-events: none;
+            animation: scanline-move 6s linear infinite;
+            opacity: 0.6;
+        }
+
+        @keyframes scanline-move {
+            0% {
+                top: -3px;
+            }
+
+            100% {
+                top: 100vh;
+            }
+        }
+
+        .main-container {
+            width: 100%;
+            max-width: 1100px;
+            background: var(--bg-secondary);
+            border: 2px solid var(--border);
+            border-radius: 6px;
+            box-shadow:
+                0 0 30px rgba(0, 180, 216, 0.08),
+                0 0 60px rgba(0, 0, 0, 0.5),
+                inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+            padding: 1.5rem 2rem 2rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .main-container::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: 30px;
+            right: 30px;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--accent), transparent);
+            border-radius: 2px;
+            opacity: 0.7;
+        }
+
+        /* Заголовок */
+        .ss14-header {
+            text-align: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1.25rem;
+            border-bottom: 1px solid var(--border);
+            position: relative;
+        }
+
+        .ss14-header h1 {
+            font-size: 1.6rem;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            color: var(--accent-bright);
+            text-shadow: var(--glow-cyan);
+            margin: 0 0 0.3rem;
+             
+        }
+
+        .ss14-header .subtitle {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            letter-spacing: 0.08em;
+        }
+
+        .ss14-header .status-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background: var(--accent-green);
+            border-radius: 50%;
+            margin-right: 6px;
+            box-shadow: var(--glow-green);
+            animation: status-pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes status-pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+                box-shadow: 0 0 6px rgba(46, 204, 113, 0.6);
+            }
+
+            50% {
+                opacity: 0.4;
+                box-shadow: 0 0 2px rgba(46, 204, 113, 0.2);
+            }
+        }
+
+        /* Секции */
+        .ss14-section {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 5px;
+            padding: 1.1rem 1.3rem;
+            margin-bottom: 1rem;
+            position: relative;
+            transition: border-color 0.3s;
+        }
+
+        .ss14-section:hover {
+            border-color: var(--border-glow);
+        }
+
+        .ss14-section h2 {
+            font-size: 0.85rem;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            color: var(--accent);
+            text-transform: uppercase;
+            margin: 0 0 0.9rem;
+            text-shadow: 0 0 4px rgba(0, 180, 216, 0.3);
+        }
+
+        .ss14-section label {
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            margin-bottom: 0.3rem;
+            display: block;
+        }
+
+        /* Кнопки */
+        .ss14-btn {
+            font-family: inherit;
+            font-size: 0.78rem;
+            letter-spacing: 0.05em;
+            padding: 0.5rem 1.2rem;
+            border: 1px solid var(--border);
+            border-radius: 3px;
+            cursor: pointer;
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            transition: all 0.2s;
+            text-transform: uppercase;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .ss14-btn:hover {
+            border-color: var(--accent);
+            color: var(--accent-bright);
+            text-shadow: 0 0 6px rgba(72, 202, 228, 0.5);
+            box-shadow: 0 0 12px rgba(0, 180, 216, 0.15);
+        }
+
+        .ss14-btn:active {
+            background: rgba(0, 180, 216, 0.1);
+        }
+
+        .ss14-btn.accent {
+            background: rgba(0, 180, 216, 0.12);
+            border-color: var(--accent);
+            color: var(--accent-bright);
+            font-weight: 600;
+        }
+
+        .ss14-btn.accent:hover {
+            background: rgba(0, 180, 216, 0.2);
+            box-shadow: 0 0 20px rgba(0, 180, 216, 0.25);
+        }
+
+        .ss14-btn.danger {
+            border-color: #5a1a1a;
+            color: #e57373;
+        }
+
+        .ss14-btn.danger:hover {
+            border-color: var(--accent-red);
+            text-shadow: 0 0 6px rgba(231, 76, 60, 0.6);
+            box-shadow: 0 0 12px rgba(231, 76, 60, 0.2);
+        }
+
+        .ss14-btn:disabled {
+            opacity: 0.35;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        /* Пресеты */
+        .preset-btn {
+            font-family: inherit;
+            font-size: 0.7rem;
+            letter-spacing: 0.04em;
+            padding: 0.45rem 0.7rem;
+            border: 1px solid var(--border);
+            border-radius: 3px;
+            cursor: pointer;
+            background: var(--bg-secondary);
+            color: var(--text-secondary);
+            transition: all 0.2s;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+        .preset-btn:hover {
+            border-color: var(--accent);
+            color: var(--accent-bright);
+            text-shadow: 0 0 5px rgba(72, 202, 228, 0.4);
+            box-shadow: 0 0 10px rgba(0, 180, 216, 0.1);
+        }
+
+        .preset-btn.active-preset {
+            border-color: var(--accent);
+            background: rgba(0, 180, 216, 0.15);
+            color: var(--accent-bright);
+            box-shadow: 0 0 10px rgba(0, 180, 216, 0.15);
+        }
+
+        /* Поля ввода */
+        .ss14-input,
+        .ss14-select {
+            font-family: inherit;
+            font-size: 0.78rem;
+            padding: 0.45rem 0.7rem;
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 3px;
+            color: var(--text-primary);
+            width: 100%;
+            transition: all 0.2s;
+            letter-spacing: 0.03em;
+        }
+
+        .ss14-input:focus,
+        .ss14-select:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 10px rgba(0, 180, 216, 0.2);
+        }
+
+        .ss14-select {
+            cursor: pointer;
+            appearance: none;
+            -webkit-appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%237a8b9f'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+            padding-right: 30px;
+        }
+
+        /* Ползунки */
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 4px;
+            background: var(--border);
+            border-radius: 2px;
+            outline: none;
+            cursor: pointer;
+            margin: 0.5rem 0;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 14px;
+            height: 14px;
+            background: var(--accent);
+            border-radius: 50%;
+            cursor: pointer;
+            border: 1px solid var(--accent-bright);
+            box-shadow: 0 0 8px rgba(0, 180, 216, 0.5);
+            transition: all 0.2s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            box-shadow: 0 0 16px rgba(0, 180, 216, 0.7);
+            background: var(--accent-bright);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 14px;
+            height: 14px;
+            background: var(--accent);
+            border-radius: 50%;
+            cursor: pointer;
+            border: 1px solid var(--accent-bright);
+            box-shadow: 0 0 8px rgba(0, 180, 216, 0.5);
+        }
+
+        /* Чекбоксы */
+        .ss14-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+            font-size: 0.78rem;
+            color: var(--text-secondary);
+            letter-spacing: 0.03em;
+        }
+
+        .ss14-checkbox input[type="checkbox"] {
+            appearance: none;
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            border: 1px solid var(--border);
+            border-radius: 2px;
+            background: var(--bg-primary);
+            cursor: pointer;
+            position: relative;
+            flex-shrink: 0;
+            transition: all 0.2s;
+        }
+
+        .ss14-checkbox input[type="checkbox"]:checked {
+            background: rgba(0, 180, 216, 0.2);
+            border-color: var(--accent);
+        }
+
+        .ss14-checkbox input[type="checkbox"]:checked::after {
+            content: '✓';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: var(--accent-bright);
+            font-size: 0.7rem;
+            font-weight: bold;
+        }
+
+        /* Текстареа */
+        .ss14-textarea {
+            font-family: 'Consolas', 'Courier New', 'Fira Code', monospace;
+            font-size: 0.7rem;
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            color: var(--accent-bright);
+            padding: 0.8rem;
+            resize: none;
+            width: 100%;
+            min-height: 280px;
+            white-space: pre-wrap;
+            word-break: break-all;
+            letter-spacing: 0.02em;
+            line-height: 1.5;
+            transition: border-color 0.3s;
+        }
+
+        .ss14-textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 15px rgba(0, 180, 216, 0.15);
+        }
+
+        .ss14-textarea::placeholder {
+            color: var(--text-dim);
+        }
+
+        /* Превью */
+        .preview-box {
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 180px;
+            padding: 0.5rem;
+            overflow: auto;
+            position: relative;
+        }
+
+        .preview-box .placeholder-text {
+            color: var(--text-dim);
+            font-size: 0.8rem;
+            letter-spacing: 0.04em;
+        }
+
+        .pixelated-preview {
+            image-rendering: pixelated;
+            image-rendering: -moz-crisp-edges;
+            image-rendering: crisp-edges;
+        }
+
+        /* Сообщения */
+        .msg-recommendations {
+            background: rgba(0, 180, 216, 0.06);
+            border-left: 3px solid var(--accent);
+            padding: 0.8rem 1rem;
+            border-radius: 0 4px 4px 0;
+            margin-bottom: 0.5rem;
+        }
+
+        .msg-warnings {
+            background: rgba(240, 192, 64, 0.06);
+            border-left: 3px solid var(--accent-yellow);
+            padding: 0.8rem 1rem;
+            border-radius: 0 4px 4px 0;
+        }
+
+        .msg-recommendations h3 {
+            color: var(--accent-bright);
+            font-size: 0.75rem;
+            letter-spacing: 0.06em;
+            margin: 0 0 0.4rem;
+        }
+
+        .msg-warnings h3 {
+            color: var(--accent-yellow);
+            font-size: 0.75rem;
+            letter-spacing: 0.06em;
+            margin: 0 0 0.4rem;
+        }
+
+        /* Символ превью */
+        .symbol-preview {
+            font-size: 22px;
+            line-height: 1;
+            color: var(--accent-bright);
+            text-shadow: 0 0 6px rgba(72, 202, 228, 0.5);
+        }
+
+        /* Счётчик символов */
+        .char-counter {
+            font-size: 0.7rem;
+            color: var(--text-dim);
+            letter-spacing: 0.04em;
+        }
+
+        .char-counter.warning {
+            color: var(--accent-yellow);
+        }
+
+        .char-counter.danger {
+            color: var(--accent-red);
+            animation: blink-warn 0.8s ease-in-out infinite;
+        }
+
+        @keyframes blink-warn {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.4;
+            }
+        }
+
+        /* Адаптив */
+        @media (max-width: 768px) {
+            .main-container {
+                padding: 1rem;
+            }
+
+            .ss14-header h1 {
+                font-size: 1.2rem;
+            }
+
+            .ss14-section {
+                padding: 0.8rem;
+            }
+
+            .ss14-btn {
+                font-size: 0.7rem;
+                padding: 0.4rem 0.8rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <main class="main-container">
+        <!-- Заголовок -->
+        <header class="ss14-header">
+            <h1>
+                <span class="status-dot"></span>ImageToSS14Doc
+            </h1>
+            <p class="subtitle">NanoTrasen Visual Encoding System v2.4</p>
+            <p style="font-size:1.7rem;color:var(--text-dim);margin-top:0.3rem;">
+                Ctrl+V / Cmd+V для вставки или используйте загрузчик
+            </p>
+            <div style="margin-top:0.8rem;display:flex;justify-content:center;gap:0.8rem;flex-wrap:wrap;">
+                <input type="file" id="file-input" accept="image/*" class="hidden">
+                <button id="upload-btn" class="ss14-btn accent">
+                    📁 Загрузить файл
+                </button>
+                <button id="reset-btn" class="ss14-btn danger">
+                    ↺ Сброс настроек
+                </button>
+            </div>
+        </header>
+
+        <!-- Пресеты -->
+        <section class="ss14-section">
+            <h2>⚙ Пресеты кодирования</h2>
+            <div style="display:flex;flex-wrap:wrap;gap:0.5rem;">
+                <button data-preset="max-quality" class="preset-btn active-preset">✦ Макс. качество</button>
+                <button data-preset="compact" class="preset-btn">◈ Компактный</button>
+                <button data-preset="black-white" class="preset-btn">◼ Чёрно-белое</button>
+                <button data-preset="retro" class="preset-btn">⌂ Ретро ASCII</button>
+                <button data-preset="icon" class="preset-btn">⊡ Квадратная иконка</button>
+            </div>
+        </section>
+
+        <!-- Масштабирование -->
+        <section class="ss14-section">
+            <h2>📐 Масштабирование</h2>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:0.8rem;">
+                <div>
+                    <label>Режим</label>
+                    <select id="scale-mode" class="ss14-select">
+                        <option value="auto">Авто (пропорции)</option>
+                        <option value="fixed-width">Фикс. ширина</option>
+                        <option value="fixed-height">Фикс. высота</option>
+                        <option value="fixed-size">Фикс. размер (искажение)</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Ширина (px)</label>
+                    <input type="number" id="custom-width" class="ss14-input" min="1" max="200" value="20">
+                </div>
+                <div>
+                    <label>Высота (px)</label>
+                    <input type="number" id="custom-height" class="ss14-input" min="1" max="200" value="20">
+                </div>
+                <div style="display:flex;align-items:flex-end;">
+                    <button id="apply-settings" class="ss14-btn accent" style="width:100%;">Применить</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Обработка -->
+        <section class="ss14-section">
+            <h2>🎨 Обработка изображения</h2>
+            <div
+                style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:0.8rem;margin-bottom:0.8rem;">
+                <div>
+                    <label>Яркость: <span id="brightness-value" style="color:var(--accent-bright);">0</span>%</label>
+                    <input type="range" id="brightness" min="-100" max="100" value="0">
+                </div>
+                <div>
+                    <label>Контрастность: <span id="contrast-value"
+                            style="color:var(--accent-bright);">0</span>%</label>
+                    <input type="range" id="contrast" min="-100" max="100" value="0">
+                </div>
+                <div>
+                    <label>Насыщенность: <span id="saturation-value"
+                            style="color:var(--accent-bright);">0</span>%</label>
+                    <input type="range" id="saturation" min="-100" max="100" value="0">
+                </div>
+            </div>
+            <div style="display:flex;gap:1.5rem;flex-wrap:wrap;">
+                <label class="ss14-checkbox">
+                    <input type="checkbox" id="grayscale"> Оттенки серого
+                </label>
+                <label class="ss14-checkbox">
+                    <input type="checkbox" id="invert"> Инверсия цветов
+                </label>
+            </div>
+        </section>
+
+        <!-- Прозрачность + Форматирование + Символ -->
+        <section class="ss14-section">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;">
+                <div>
+                    <h2>🫥 Прозрачность</h2>
+                    <label>Фон для прозрачных пикселей</label>
+                    <select id="bg-mode" class="ss14-select">
+                        <option value="white">Белый</option>
+                        <option value="black">Чёрный</option>
+                        <option value="paper">Бежевый (бумага SS14)</option>
+                        <option value="skip">Пропускать пиксель</option>
+                    </select>
+                    <div style="margin-top:0.6rem;">
+                        <label>Порог прозрачности: <span id="alpha-threshold-value"
+                                style="color:var(--accent-bright);">128</span></label>
+                        <input type="range" id="alpha-threshold" min="0" max="255" value="128">
+                    </div>
+                </div>
+                <div>
+                    <h2>📝 Форматирование</h2>
+                    <div style="display:flex;flex-direction:column;gap:0.5rem;">
+                        <label class="ss14-checkbox">
+                            <input type="checkbox" id="optimize-colors" checked> Оптимизация цветов (экономия символов)
+                        </label>
+                        <label class="ss14-checkbox">
+                            <input type="checkbox" id="line-breaks" checked> Перенос строки после ряда
+                        </label>
+                    </div>
+                </div>
+                <div>
+                    <h2>▣ Символ рисования</h2>
+                    <label>Выберите символ</label>
+                    <select id="draw-symbol" class="ss14-select">
+                        <option value="██">█▌ — Полностью залитый (двойной)</option>
+                        <option value="█">█ — Полностью залитый</option>
+                        <option value="▓">▓ — Плотная штриховка</option>
+                        <option value="▒">▒ — Средняя штриховка</option>
+                        <option value="░">░ — Редкая штриховка</option>
+                        <option value="■">■ — Чёрный квадрат</option>
+                        <option value="□">□ — Белый квадрат</option>
+                        <option value="▪">▪ — Малый чёрный квадрат</option>
+                        <option value="▫">▫ — Малый белый квадрат</option>
+                        <option value="●">● — Чёрный круг</option>
+                        <option value="○">○ — Белый круг</option>
+                        <option value="◆">◆ — Чёрный ромб</option>
+                        <option value="◇">◇ — Белый ромб</option>
+                        <option value="▲">▲ — Треугольник вверх</option>
+                        <option value="▼">▼ — Треугольник вниз</option>
+                        <option value="▄">▄ — Нижняя половина</option>
+                        <option value="▀">▀ — Верхняя половина</option>
+                    </select>
+                    <div style="margin-top:0.5rem;text-align:center;">
+                        <span style="font-size:0.7rem;color:var(--text-dim);">Предпросмотр: </span>
+                        <span id="symbol-preview" class="symbol-preview">██</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Сообщения -->
+        <section id="messages-container" style="display:none;margin-bottom:1rem;">
+            <div id="recommendations" class="msg-recommendations" style="display:none;">
+                <h3>📋 Рекомендации</h3>
+                <ul id="recommendations-list"
+                    style="list-style:none;padding:0;margin:0;font-size:0.72rem;color:var(--text-secondary);"></ul>
+            </div>
+            <div id="warnings" class="msg-warnings" style="display:none;">
+                <h3>⚠ Предупреждения</h3>
+                <ul id="warnings-list" style="list-style:none;padding:0;margin:0;font-size:0.72rem;color:#d4a840;"></ul>
+            </div>
+        </section>
+
+        <!-- Превью + Результат -->
+        <section style="display:flex;flex-direction:column;gap:1.2rem;margin-top:0.5rem;">
+            <!-- Верхний блок: превью -->
+            <div>
+                <h2
+                    style="font-size:0.8rem;letter-spacing:0.06em;color:var(--accent);margin-bottom:0.6rem;text-transform:uppercase;">
+                    📺 Предварительный просмотр</h2>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.6rem;">
+                    <div>
+                        <p style="font-size:0.65rem;color:var(--text-dim);margin-bottom:0.3rem;">Оригинал</p>
+                        <div id="original-preview" class="preview-box" style="min-height:160px;">
+                            <p id="original-text" class="placeholder-text">Ожидание...</p>
+                            <img id="original-image" class="hidden"
+                                style="max-width:100%;max-height:100%;object-fit:contain;" alt="Оригинал">
+                        </div>
+                    </div>
+                    <div>
+                        <p style="font-size:0.65rem;color:var(--text-dim);margin-bottom:0.3rem;">Результат (x20)</p>
+                        <div id="result-preview" class="preview-box" style="min-height:160px;">
+                            <p id="result-text" class="placeholder-text">Ожидание...</p>
+                            <canvas id="result-canvas" class="hidden pixelated-preview"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <div
+                    style="display:flex;justify-content:space-between;margin-top:0.4rem;font-size:0.68rem;color:var(--text-dim);">
+                    <span id="dimensions-info">Размер: --</span>
+                    <span id="pixel-count">Пикселей: --</span>
+                </div>
+            </div>
+
+            <!-- Нижний блок: вывод -->
+            <div>
+                <h2
+                    style="font-size:0.8rem;letter-spacing:0.06em;color:var(--accent);margin-bottom:0.6rem;text-transform:uppercase;">
+                    📄 Сгенерированный текст</h2>
+                <textarea id="output-text" class="ss14-textarea" readonly
+                    placeholder="[ Ожидание входных данных... ]"></textarea>
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.5rem;">
+                    <span id="char-count" class="char-counter">Символов: 0 / 10000</span>
+                    <button id="copy-btn" class="ss14-btn accent" disabled>
+                        📋 Копировать
+                    </button>
+                </div>
+            </div>
+        </section>
+        <span class="char-counter">Fully AI-vibe coded. Qwen3.7-Plus + Deepseek. Orchestrated by </span> <a href="https://github.com/Eargosha">Eargosha</a>
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Элементы интерфейса
+            const originalImage = document.getElementById('original-image');
+            const originalText = document.getElementById('original-text');
+            const resultCanvas = document.getElementById('result-canvas');
+            const resultText = document.getElementById('result-text');
+            const outputText = document.getElementById('output-text');
+            const copyBtn = document.getElementById('copy-btn');
+            const charCount = document.getElementById('char-count');
+            const dimensionsInfo = document.getElementById('dimensions-info');
+            const pixelCount = document.getElementById('pixel-count');
+            const scaleMode = document.getElementById('scale-mode');
+            const customWidth = document.getElementById('custom-width');
+            const customHeight = document.getElementById('custom-height');
+            const applySettings = document.getElementById('apply-settings');
+            const messagesContainer = document.getElementById('messages-container');
+            const recommendations = document.getElementById('recommendations');
+            const recommendationsList = document.getElementById('recommendations-list');
+            const warnings = document.getElementById('warnings');
+            const warningsList = document.getElementById('warnings-list');
+            const fileInput = document.getElementById('file-input');
+            const uploadBtn = document.getElementById('upload-btn');
+            const resetBtn = document.getElementById('reset-btn');
+
+            // Элементы обработки
+            const brightness = document.getElementById('brightness');
+            const contrast = document.getElementById('contrast');
+            const saturation = document.getElementById('saturation');
+            const grayscale = document.getElementById('grayscale');
+            const invert = document.getElementById('invert');
+            const bgMode = document.getElementById('bg-mode');
+            const alphaThreshold = document.getElementById('alpha-threshold');
+            const optimizeColors = document.getElementById('optimize-colors');
+            const lineBreaks = document.getElementById('line-breaks');
+            const drawSymbol = document.getElementById('draw-symbol');
+            const symbolPreview = document.getElementById('symbol-preview');
+
+            // Элементы отображения значений слайдеров
+            const brightnessValue = document.getElementById('brightness-value');
+            const contrastValue = document.getElementById('contrast-value');
+            const saturationValue = document.getElementById('saturation-value');
+            const alphaThresholdValue = document.getElementById('alpha-threshold-value');
+
+            const MAX_CHARS = 10000;
+            const PREVIEW_SCALE = 20;
+
+            // Пресеты
+            const presets = {
+                'max-quality': {
+                    name: 'Максимальное качество',
+                    settings: {
+                        scaleMode: 'auto',
+                        customWidth: 20,
+                        customHeight: 20,
+                        brightness: 0,
+                        contrast: 0,
+                        saturation: 0,
+                        grayscale: false,
+                        invert: false,
+                        bgMode: 'white',
+                        alphaThreshold: 128,
+                        optimizeColors: true,
+                        lineBreaks: true,
+                        drawSymbol: '██'
+                    }
+                },
+                'compact': {
+                    name: 'Компактный',
+                    settings: {
+                        scaleMode: 'auto',
+                        customWidth: 10,
+                        customHeight: 10,
+                        brightness: 0,
+                        contrast: 10,
+                        saturation: 0,
+                        grayscale: false,
+                        invert: false,
+                        bgMode: 'white',
+                        alphaThreshold: 128,
+                        optimizeColors: true,
+                        lineBreaks: true,
+                        drawSymbol: '█'
+                    }
+                },
+                'black-white': {
+                    name: 'Чёрно-белое',
+                    settings: {
+                        scaleMode: 'auto',
+                        customWidth: 20,
+                        customHeight: 20,
+                        brightness: 0,
+                        contrast: 30,
+                        saturation: -100,
+                        grayscale: true,
+                        invert: false,
+                        bgMode: 'white',
+                        alphaThreshold: 128,
+                        optimizeColors: true,
+                        lineBreaks: true,
+                        drawSymbol: '██'
+                    }
+                },
+                'retro': {
+                    name: 'Ретро ASCII',
+                    settings: {
+                        scaleMode: 'fixed-size',
+                        customWidth: 15,
+                        customHeight: 15,
+                        brightness: 0,
+                        contrast: 20,
+                        saturation: -50,
+                        grayscale: true,
+                        invert: false,
+                        bgMode: 'paper',
+                        alphaThreshold: 128,
+                        optimizeColors: false,
+                        lineBreaks: true,
+                        drawSymbol: '▒'
+                    }
+                },
+                'icon': {
+                    name: 'Квадратная иконка',
+                    settings: {
+                        scaleMode: 'fixed-size',
+                        customWidth: 16,
+                        customHeight: 16,
+                        brightness: 0,
+                        contrast: 10,
+                        saturation: 20,
+                        grayscale: false,
+                        invert: false,
+                        bgMode: 'white',
+                        alphaThreshold: 128,
+                        optimizeColors: true,
+                        lineBreaks: true,
+                        drawSymbol: '██'
+                    }
+                }
+            };
+
+            let currentImage = null;
+
+            // Обновление предпросмотра символа
+            drawSymbol.addEventListener('change', () => {
+                symbolPreview.textContent = drawSymbol.value;
+                if (currentImage) processImage(currentImage);
+            });
+
+            // Обработка пресетов
+            document.querySelectorAll('.preset-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const presetName = btn.dataset.preset;
+                    const preset = presets[presetName];
+                    if (!preset) return;
+
+                    const s = preset.settings;
+                    scaleMode.value = s.scaleMode;
+                    customWidth.value = s.customWidth;
+                    customHeight.value = s.customHeight;
+                    brightness.value = s.brightness; brightnessValue.textContent = s.brightness;
+                    contrast.value = s.contrast; contrastValue.textContent = s.contrast;
+                    saturation.value = s.saturation; saturationValue.textContent = s.saturation;
+                    grayscale.checked = s.grayscale;
+                    invert.checked = s.invert;
+                    bgMode.value = s.bgMode;
+                    alphaThreshold.value = s.alphaThreshold; alphaThresholdValue.textContent = s.alphaThreshold;
+                    optimizeColors.checked = s.optimizeColors;
+                    lineBreaks.checked = s.lineBreaks;
+                    drawSymbol.value = s.drawSymbol;
+                    symbolPreview.textContent = s.drawSymbol;
+
+                    if (currentImage) processImage(currentImage);
+                });
+            });
+
+            // Обновление значений слайдеров при их изменении и автоматическая перерисовка
+            [brightness, contrast, saturation, alphaThreshold].forEach(slider => {
+                slider.addEventListener('input', (e) => {
+                    const valueDisplay = document.getElementById(e.target.id + '-value');
+                    if (valueDisplay) valueDisplay.textContent = e.target.value;
+                    if (currentImage) processImage(currentImage);
+                });
+            });
+
+            [grayscale, invert, bgMode, optimizeColors, lineBreaks].forEach(control => {
+                control.addEventListener('change', () => {
+                    if (currentImage) processImage(currentImage);
+                });
+            });
+
+            // Загрузка файла
+            uploadBtn.addEventListener('click', () => fileInput.click());
+            fileInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file && file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = (fetchEvent) => {
+                        const img = new Image();
+                        img.onload = () => {
+                            currentImage = img;
+                            processImage(img);
+                        };
+                        img.src = fetchEvent.target.result;
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+
+            // Сброс настроек
+            resetBtn.addEventListener('click', () => {
+                scaleMode.value = 'auto';
+                customWidth.value = 20;
+                customHeight.value = 20;
+                brightness.value = 0; brightnessValue.textContent = '0';
+                contrast.value = 0; contrastValue.textContent = '0';
+                saturation.value = 0; saturationValue.textContent = '0';
+                grayscale.checked = false;
+                invert.checked = false;
+                bgMode.value = 'white';
+                alphaThreshold.value = 128; alphaThresholdValue.textContent = '128';
+                optimizeColors.checked = true;
+                lineBreaks.checked = true;
+                drawSymbol.value = '██';
+                symbolPreview.textContent = '██';
+                if (currentImage) processImage(currentImage);
+            });
+
+            // Вставка из буфера обмена
+            document.addEventListener('paste', (event) => {
+                const items = event.clipboardData.items;
+                for (let i = 0; i < items.length; i++) {
+                    if (items[i].type.indexOf('image') !== -1) {
+                        const blob = items[i].getAsFile();
+                        const reader = new FileReader();
+                        reader.onload = (fetchEvent) => {
+                            const img = new Image();
+                            img.onload = () => {
+                                currentImage = img;
+                                processImage(img);
+                            };
+                            img.src = fetchEvent.target.result;
+                        };
+                        reader.readAsDataURL(blob);
+                        break;
+                    }
+                }
+            });
+
+            applySettings.addEventListener('click', () => {
+                if (currentImage) processImage(currentImage);
+            });
+
+            function processImage(img) {
+                let width = img.width;
+                let height = img.height;
+                let newWidth, newHeight;
+                const mode = scaleMode.value;
+                const recs = [];
+                const warns = [];
+
+                originalText.classList.add('hidden');
+                originalImage.classList.remove('hidden');
+                originalImage.src = img.src;
+
+                // Вычисление размеров
+                if (mode === 'auto') {
+                    const baseCharsPerPixel = 17;
+                    const maxPixels = Math.floor(MAX_CHARS / baseCharsPerPixel);
+                    let scale = Math.sqrt(maxPixels / (width * height));
+                    if (scale > 1) scale = 1;
+                    newWidth = Math.max(1, Math.floor(width * scale));
+                    newHeight = Math.max(1, Math.floor(height * scale));
+                } else if (mode === 'fixed-width') {
+                    newWidth = parseInt(customWidth.value) || 20;
+                    newHeight = Math.max(1, Math.round(height * (newWidth / width)));
+                } else if (mode === 'fixed-height') {
+                    newHeight = parseInt(customHeight.value) || 20;
+                    newWidth = Math.max(1, Math.round(width * (newHeight / height)));
+                } else if (mode === 'fixed-size') {
+                    newWidth = parseInt(customWidth.value) || 20;
+                    newHeight = parseInt(customHeight.value) || 20;
+                }
+
+                const currentSymbol = drawSymbol.value;
+                const charsPerPixel = 15 + currentSymbol.length;
+                const maxPixels = Math.floor(MAX_CHARS / charsPerPixel);
+
+                while (newWidth * newHeight > maxPixels) {
+                    if (newWidth > newHeight) newWidth--;
+                    else newHeight--;
+                    warns.push(`Размеры автоматически уменьшены до ${newWidth}x${newHeight} для соблюдения лимита символов.`);
+                }
+
+                if (width > 1000 || height > 1000) recs.push('Изображение очень большое. Рекомендуется использовать изображения меньшего размера для лучшего качества.');
+                if (Math.abs(width / height - 1) > 0.5) recs.push('Изображение имеет вытянутую форму. Для лучшего результата рекомендуется использовать квадратные изображения.');
+                if (newWidth < 10 || newHeight < 10) recs.push('Результирующее изображение очень маленькое. Детали могут быть неразличимы.');
+
+                // Canvas и фильтры
+                const canvas = document.createElement('canvas');
+                canvas.width = newWidth;
+                canvas.height = newHeight;
+                const ctx = canvas.getContext('2d');
+                ctx.imageSmoothingEnabled = false;
+
+                const brightnessPercent = 100 + parseInt(brightness.value);
+                const contrastPercent = 100 + parseInt(contrast.value);
+                const saturationPercent = 100 + parseInt(saturation.value);
+                let filterStr = `brightness(${brightnessPercent}%) contrast(${contrastPercent}%) saturate(${saturationPercent}%)`;
+                if (grayscale.checked) filterStr += ' grayscale(100%)';
+                if (invert.checked) filterStr += ' invert(100%)';
+                ctx.filter = filterStr;
+
+                ctx.drawImage(img, 0, 0, newWidth, newHeight);
+
+                const imageData = ctx.getImageData(0, 0, newWidth, newHeight);
+                const data = imageData.data;
+
+                const bgColors = {
+                    white: { r: 255, g: 255, b: 255 },
+                    black: { r: 0, g: 0, b: 0 },
+                    paper: { r: 211, g: 157, b: 95 }
+                };
+
+                const alphaThresholdVal = parseInt(alphaThreshold.value);
+                const currentBgMode = bgMode.value;
+                const shouldOptimize = optimizeColors.checked;
+                const shouldInsertLineBreaks = lineBreaks.checked;
+                const symbol = drawSymbol.value;
+
+                let resultString = '';
+                let currentColor = null;
+                let currentPixelCount = 0;
+                let totalChars = 0;
+                let pixelIndex = 0;
+
+                // Массив для хранения цветов пикселей для превью
+                const pixelColors = [];
+
+                for (let i = 0; i < data.length; i += 4) {
+                    let r = data[i];
+                    let g = data[i + 1];
+                    let b = data[i + 2];
+                    const a = data[i + 3];
+
+                    if (a < alphaThresholdVal) {
+                        if (currentBgMode === 'skip') {
+                            pixelColors.push(null);
+                            pixelIndex++;
+                            continue;
+                        }
+                        const bg = bgColors[currentBgMode];
+                        if (bg) {
+                            r = bg.r; g = bg.g; b = bg.b;
+                        }
+                    }
+
+                    const color = `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+                    pixelColors.push(color);
+
+                    if (shouldOptimize) {
+                        if (color === currentColor) {
+                            currentPixelCount++;
+                        } else {
+                            if (currentColor) {
+                                const segment = `[color=${currentColor}]${symbol.repeat(currentPixelCount)}`;
+                                resultString += segment;
+                                totalChars += segment.length;
+                            }
+                            currentColor = color;
+                            currentPixelCount = 1;
+                        }
+                    } else {
+                        const segment = `[color=${color}]${symbol}`;
+                        resultString += segment;
+                        totalChars += segment.length;
+                    }
+
+                    if (shouldInsertLineBreaks) {
+                        pixelIndex++;
+                        if (pixelIndex % newWidth === 0) {
+                            if (shouldOptimize && currentColor) {
+                                const segment = `[color=${currentColor}]${symbol.repeat(currentPixelCount)}`;
+                                resultString += segment;
+                                totalChars += segment.length;
+                                currentColor = null;
+                                currentPixelCount = 0;
+                            }
+                            resultString += '\n';
+                            totalChars += 1;
+                        }
+                    } else {
+                        pixelIndex++;
+                    }
+
+                    if (totalChars > MAX_CHARS) {
+                        warns.push(`Генерация прервана: превышен лимит символов. Уменьшите размер изображения или включите оптимизацию.`);
+                        break;
+                    }
+                }
+
+                if (shouldOptimize && currentColor) {
+                    const segment = `[color=${currentColor}]${symbol.repeat(currentPixelCount)}`;
+                    resultString += segment;
+                    totalChars += segment.length;
+                }
+
+                updateUI(canvas, resultString, newWidth, newHeight, recs, warns, pixelColors, symbol);
+            }
+
+            function updateUI(canvas, result, w, h, recs, warns, pixelColors, symbol) {
+                resultText.classList.add('hidden');
+                resultCanvas.classList.remove('hidden');
+
+                // Создание превью с выбранным символом
+                const previewCanvas = resultCanvas;
+                const scale = PREVIEW_SCALE;
+                previewCanvas.width = w * scale;
+                previewCanvas.height = h * scale;
+                const ctx = previewCanvas.getContext('2d');
+
+                // Очистка canvas
+                ctx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+
+                // Рисование символов
+                ctx.font = `${scale}px monospace`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+
+                let pixelIndex = 0;
+                for (let y = 0; y < h; y++) {
+                    for (let x = 0; x < w; x++) {
+                        const color = pixelColors[pixelIndex];
+                        if (color) {
+                            ctx.fillStyle = color;
+                            ctx.fillText(symbol, x * scale + scale / 2, y * scale + scale / 2);
+                        }
+                        pixelIndex++;
+                    }
+                }
+
+                dimensionsInfo.textContent = `Размер: ${w} x ${h}`;
+                pixelCount.textContent = `Пикселей: ${w * h}`;
+                outputText.value = result;
+                charCount.textContent = `Символов: ${result.length} / ${MAX_CHARS}`;
+                copyBtn.disabled = false;
+
+                messagesContainer.classList.remove('hidden');
+                if (recs.length > 0) {
+                    recommendations.classList.remove('hidden');
+                    recommendationsList.innerHTML = recs.map(r => `<li>${r}</li>`).join('');
+                } else {
+                    recommendations.classList.add('hidden');
+                }
+
+                if (warns.length > 0) {
+                    warnings.classList.remove('hidden');
+                    warningsList.innerHTML = warns.map(w => `<li>${w}</li>`).join('');
+                } else {
+                    warnings.classList.add('hidden');
+                }
+
+                if (recs.length === 0 && warns.length === 0) {
+                    messagesContainer.classList.add('hidden');
+                }
+            }
+
+            copyBtn.addEventListener('click', () => {
+                if (outputText.value) {
+                    navigator.clipboard.writeText(outputText.value).then(() => {
+                        const originalText = copyBtn.textContent;
+                        copyBtn.textContent = 'Скопировано';
+                        copyBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+                        copyBtn.classList.add('bg-green-600');
+                        setTimeout(() => {
+                            copyBtn.textContent = originalText;
+                            copyBtn.classList.remove('bg-green-600');
+                            copyBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+                        }, 2000);
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+
+</html>
